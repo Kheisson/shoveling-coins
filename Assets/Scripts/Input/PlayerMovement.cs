@@ -8,6 +8,7 @@ namespace Input
         #region Fields
 
         private const string IS_MOVING = "isMoving";
+        private const float INPUT_THRESHOLD = 0.01f;
         private CharacterController _characterController;
         private Animator _animator;
         private Vector2 _movementInput;
@@ -39,9 +40,11 @@ namespace Input
 
         public void OnMove(InputValue value)
         {
-            _movementInput = value.Get<Vector2>();
+            var input = value.Get<Vector2>();
+    
+            var swapped = new Vector2(input.y, -input.x);
+            _movementInput = IsometricToCartesian(swapped);
         }
-
         private void Update()
         {
             MovePlayer();
@@ -53,27 +56,35 @@ namespace Input
 
         #region Private Methods
 
+        private Vector2 IsometricToCartesian(Vector2 isoDirection)
+        {
+            Vector2 cartDirection = new Vector2(
+                0.5f * (isoDirection.x - isoDirection.y),
+                0.5f * (isoDirection.x + isoDirection.y));
+
+            return cartDirection;
+        }
+
         private void MovePlayer()
         {
-            var move = new Vector3(-_movementInput.y, 0, _movementInput.x) * moveSpeed;
+            var move = new Vector3(_movementInput.x, 0, _movementInput.y) * moveSpeed;
             _characterController.Move(move * Time.deltaTime);
         }
         
         private void AnimatePlayer()
         {
-            var isMoving = _movementInput.sqrMagnitude > 0.05f;
+            var isMoving = _movementInput.sqrMagnitude > INPUT_THRESHOLD;
             _animator.SetBool(IsMoving, isMoving);
         }
 
         private void RotatePlayer()
         {
-            if (!(_movementInput.sqrMagnitude > 0.01f)) return;
+            if (!(_movementInput.sqrMagnitude > INPUT_THRESHOLD)) return;
             
-            var targetDirection = new Vector3(-_movementInput.y, 0, _movementInput.x);
+            var targetDirection = new Vector3(_movementInput.x, 0, _movementInput.y);
             var targetRotation = Quaternion.LookRotation(targetDirection);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
-
 
         #endregion
     }
